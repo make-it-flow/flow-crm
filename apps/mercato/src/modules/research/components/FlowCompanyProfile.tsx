@@ -550,32 +550,41 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
           <SalesStageStepper currentIndex={stepperIndex} />
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <ResearchLeftColumn
-              brief={brief}
-              onChange={handleBriefChange}
-              notes={(
-                <NotesSection
-                  key={`${id}:${run?.id ?? 'none'}:${run?.finishedAt ?? 'open'}`}
-                  entityId={id}
-                  emptyLabel={t('customers.companies.detail.empty.comments', 'No notes yet.')}
-                  viewerUserId={data.viewer?.userId ?? null}
-                  viewerName={data.viewer?.name ?? null}
-                  viewerEmail={data.viewer?.email ?? null}
-                  addActionLabel={t('customers.companies.detail.notes.addLabel', 'Add note')}
-                  emptyState={{
-                    title: t('customers.companies.detail.emptyState.notes.title', 'Keep everyone in the loop'),
-                    actionLabel: t('customers.companies.detail.emptyState.notes.action', 'Create a note'),
-                  }}
-                  translator={detailTranslator}
-                  dataAdapter={notesAdapter}
-                  renderIcon={renderDictionaryIcon}
-                  renderColor={renderDictionaryColor}
-                  iconSuggestions={ICON_SUGGESTIONS}
-                  readMarkdownPreference={readMarkdownPreferenceCookie}
-                  writeMarkdownPreference={writeMarkdownPreferenceCookie}
-                />
-              )}
-            />
+            <div className="space-y-3">
+              <ResearchLeftColumn
+                brief={brief}
+                onChange={handleBriefChange}
+                notes={(
+                  <NotesSection
+                    key={`${id}:${run?.id ?? 'none'}:${run?.finishedAt ?? 'open'}`}
+                    entityId={id}
+                    emptyLabel={t('customers.companies.detail.empty.comments', 'No notes yet.')}
+                    viewerUserId={data.viewer?.userId ?? null}
+                    viewerName={data.viewer?.name ?? null}
+                    viewerEmail={data.viewer?.email ?? null}
+                    addActionLabel={t('customers.companies.detail.notes.addLabel', 'Add note')}
+                    emptyState={{
+                      title: t('customers.companies.detail.emptyState.notes.title', 'Keep everyone in the loop'),
+                      actionLabel: t('customers.companies.detail.emptyState.notes.action', 'Create a note'),
+                    }}
+                    translator={detailTranslator}
+                    dataAdapter={notesAdapter}
+                    renderIcon={renderDictionaryIcon}
+                    renderColor={renderDictionaryColor}
+                    iconSuggestions={ICON_SUGGESTIONS}
+                    readMarkdownPreference={readMarkdownPreferenceCookie}
+                    writeMarkdownPreference={writeMarkdownPreferenceCookie}
+                  />
+                )}
+              />
+              <ClassificationSection
+                values={classification}
+                onChange={(patch) => {
+                  setClassification((prev) => ({ ...prev, ...patch }))
+                  markDirty()
+                }}
+              />
+            </div>
             <ResearchRightColumn
               description={description}
               websiteUrl={websiteUrl}
@@ -588,6 +597,22 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
                   contact={brief.contactPerson}
                   decisionMaker={brief.decisionMaker}
                   onChange={handleBriefChange}
+                  people={(
+                    <CompanyPeopleSection
+                      companyId={id}
+                      companyName={displayName}
+                      initialPeople={people}
+                      showRoles={false}
+                      addActionLabel={t('customers.companies.detail.people.add', 'Add person')}
+                      emptyLabel={t('customers.companies.detail.people.empty', 'No people linked to this company yet.')}
+                      emptyState={{
+                        title: t('customers.companies.detail.emptyState.people.title', 'Build the account team'),
+                        actionLabel: t('customers.companies.detail.emptyState.people.action', 'Create person'),
+                      }}
+                      translator={detailTranslator}
+                      onPeopleChange={setPeople}
+                    />
+                  )}
                 />
               )}
               onChange={(patch) => {
@@ -602,31 +627,6 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
               }}
             />
           </div>
-
-          <ClassificationSection
-            values={classification}
-            onChange={(patch) => {
-              setClassification((prev) => ({ ...prev, ...patch }))
-              markDirty()
-            }}
-          />
-
-          <section className="rounded-lg border bg-card p-4">
-            <h2 className="mb-3 text-sm font-semibold">{t('research.profile.people.title')}</h2>
-            <CompanyPeopleSection
-              companyId={id}
-              companyName={displayName}
-              initialPeople={people}
-              addActionLabel={t('customers.companies.detail.people.add', 'Add person')}
-              emptyLabel={t('customers.companies.detail.people.empty', 'No people linked to this company yet.')}
-              emptyState={{
-                title: t('customers.companies.detail.emptyState.people.title', 'Build the account team'),
-                actionLabel: t('customers.companies.detail.emptyState.people.action', 'Create person'),
-              }}
-              translator={detailTranslator}
-              onPeopleChange={setPeople}
-            />
-          </section>
         </div>
         {ConfirmDialogElement}
       </PageBody>

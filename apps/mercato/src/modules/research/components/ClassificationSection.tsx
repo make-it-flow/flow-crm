@@ -71,7 +71,7 @@ export function ClassificationSection({
           {t('research.profile.classification.count')}
         </span>
       </summary>
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3">
         <div className="space-y-1.5">
           <Label>{t('customers.people.form.status', 'Status')}</Label>
           <DictionarySelectField

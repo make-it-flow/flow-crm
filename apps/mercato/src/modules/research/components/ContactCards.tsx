@@ -68,10 +68,12 @@ function PersonCard({
 export function ContactCards({
   contact,
   decisionMaker,
+  people,
   onChange,
 }: {
   contact: ResearchPersonForm
   decisionMaker: ResearchPersonForm
+  people?: React.ReactNode
   onChange: (patch: { contactPerson?: ResearchPersonForm; decisionMaker?: ResearchPersonForm }) => void
 }) {
   const t = useT()
@@ -89,6 +91,7 @@ export function ContactCards({
         person={decisionMaker}
         onChange={(next) => onChange({ decisionMaker: next })}
       />
+      {people}
     </div>
   )
 }

@@ -57,6 +57,7 @@ export type CompanyPeopleSectionProps = {
   onLoadingChange?: (isLoading: boolean) => void
   onDataRefresh?: () => Promise<void> | void
   runGuardedMutation?: GuardedMutationRunner
+  showRoles?: boolean
 }
 
 const COMPANY_PEOPLE_PAGE_SIZE = 20
@@ -187,6 +188,7 @@ export function CompanyPeopleSection({
   onLoadingChange,
   onDataRefresh,
   runGuardedMutation,
+  showRoles = true,
 }: CompanyPeopleSectionProps) {
   const tHook = useT()
   const fallbackTranslator = React.useMemo<Translator>(
@@ -624,11 +626,13 @@ export function CompanyPeopleSection({
   return (
     <>
       <div className="space-y-4">
-        <RolesSection
-          entityType="company"
-          entityId={companyId}
-          entityName={companyName ?? null}
-        />
+        {showRoles ? (
+          <RolesSection
+            entityType="company"
+            entityId={companyId}
+            entityName={companyName ?? null}
+          />
+        ) : null}
 
         <section className="rounded-lg border bg-card px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-4">
