@@ -4,6 +4,7 @@ import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { createLogger } from '@open-mercato/shared/lib/logger'
 import { completeResearchRun, failResearchRun } from '../lib/completeRun'
 import { LIVE_RUN_STATUSES, MOCK_RESEARCH_DELAY_MS } from '../lib/constants'
+import { buildEnrykResearchRequest } from '../lib/enrykRequest'
 import { buildMockResearchBrief } from '../lib/mockBrief'
 import { nextMockVariant } from '../lib/mockVariant'
 import { resolveResearchRunEntity } from '../lib/orm'
@@ -92,8 +93,7 @@ export default async function handle(
       tenantId: payload.tenantId,
       organizationId: payload.organizationId,
       brief: buildMockResearchBrief({
-        companyName: run.companyName ?? 'Firma',
-        websiteUrl: run.websiteUrl,
+        ...buildEnrykResearchRequest(run),
         variant,
       }),
     })

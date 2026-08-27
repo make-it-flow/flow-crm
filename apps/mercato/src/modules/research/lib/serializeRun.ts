@@ -13,6 +13,7 @@ export type ResearchRunDto = {
   companyId: string
   companyName: string | null
   websiteUrl: string | null
+  industry: string | null
   status: ResearchRun['status']
   mainInsight: string | null
   mainInsightSource: string | null
@@ -56,6 +57,7 @@ export function serializeResearchRun(run: ResearchRun): ResearchRunDto {
     companyId: run.companyId,
     companyName: run.companyName ?? null,
     websiteUrl: run.websiteUrl ?? null,
+    industry: run.industry ?? null,
     status: run.status,
     mainInsight: run.mainInsight ?? null,
     mainInsightSource: run.mainInsightSource ?? null,

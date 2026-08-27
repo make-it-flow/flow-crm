@@ -2,6 +2,7 @@ import type { EntityManager } from '@mikro-orm/postgresql'
 import { completeResearchRun, failResearchRun } from './completeRun'
 import { LIVE_RUN_STATUSES, MOCK_RESEARCH_DELAY_MS, STALE_LIVE_RUN_ERROR } from './constants'
 import { isMockEnrykMode } from './enrykMode'
+import { buildEnrykResearchRequest } from './enrykRequest'
 import { buildMockResearchBrief } from './mockBrief'
 import { nextMockVariant } from './mockVariant'
 import { resolveResearchRunEntity } from './orm'
@@ -40,8 +41,7 @@ export async function settleLiveRunsForCompany(
         tenantId: params.tenantId,
         organizationId: params.organizationId,
         brief: buildMockResearchBrief({
-          companyName: live.companyName ?? 'Firma',
-          websiteUrl: live.websiteUrl,
+          ...buildEnrykResearchRequest(live),
           variant,
         }),
       })

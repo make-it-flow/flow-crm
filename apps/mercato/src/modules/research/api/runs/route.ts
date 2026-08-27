@@ -10,6 +10,7 @@ import { applyResearchBrief } from '../../lib/brief'
 import { failResearchRun } from '../../lib/completeRun'
 import { LIVE_RUN_STATUSES } from '../../lib/constants'
 import { isMockEnrykMode } from '../../lib/enrykMode'
+import { resolveIndustryLabel } from '../../lib/industry'
 import { settleLiveRunsForCompany } from '../../lib/expireStale'
 import { resolveResearchRunEntity } from '../../lib/orm'
 import { finishMockResearchRun } from '../../lib/simulateMock'
@@ -103,12 +104,18 @@ export async function POST(req: Request) {
     }
 
     const profile = await em.findOne(CustomerCompanyProfile, { entity: company })
+    const industry = await resolveIndustryLabel(em, {
+      tenantId,
+      organizationId,
+      industry: profile?.industry,
+    })
     const run = em.create(ResearchRun, {
       tenantId,
       organizationId,
       companyId: company.id,
       companyName: company.displayName,
       websiteUrl: profile?.websiteUrl ?? null,
+      industry,
       status: 'pending',
     })
     em.persist(run)
@@ -142,6 +149,7 @@ export async function POST(req: Request) {
           companyId: company.id,
           companyName: run.companyName ?? company.displayName,
           websiteUrl: run.websiteUrl,
+          industry: run.industry,
         })
       })
     }
@@ -189,12 +197,18 @@ export async function PUT(req: Request) {
     const now = new Date()
     if (!run) {
       const profile = await em.findOne(CustomerCompanyProfile, { entity: company })
+      const industry = await resolveIndustryLabel(em, {
+        tenantId,
+        organizationId,
+        industry: profile?.industry,
+      })
       run = em.create(ResearchRun, {
         tenantId,
         organizationId,
         companyId: company.id,
         companyName: company.displayName,
         websiteUrl: profile?.websiteUrl ?? null,
+        industry,
         status: 'done',
         startedAt: now,
         finishedAt: now,

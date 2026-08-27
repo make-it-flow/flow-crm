@@ -38,6 +38,9 @@ export class ResearchRun {
   @Property({ name: 'website_url', type: 'text', nullable: true })
   websiteUrl?: string | null
 
+  @Property({ name: 'industry', type: 'text', nullable: true })
+  industry?: string | null
+
   @Property({ type: 'text', default: 'pending' })
   status: ResearchRunStatus = 'pending'
 

@@ -134,9 +134,11 @@ function toPerson(
 export function buildMockResearchBrief(params: {
   companyName: string
   websiteUrl?: string | null
+  industry?: string | null
   variant?: number
 }): ResearchBriefInput {
   const name = params.companyName.trim() || 'ta firma'
+  const industry = params.industry?.trim() || null
   const variant = Math.max(1, params.variant ?? 1)
   const slug = slugify(name)
   const websiteUrl = pick([
@@ -150,12 +152,13 @@ export function buildMockResearchBrief(params: {
   const contact = toPerson(pick(CONTACTS, variant - 1, 0), domain)
   const decisionMaker = toPerson(pick(DECISION_MAKERS, variant - 1, 1), domain)
   const insightTail = pick(INSIGHTS, variant - 1, 0)
+  const industryClause = industry ? ` w branży ${industry}` : ''
   const companyDescription = pick([
-    `${name} to polskie MŚP, które sprzedaje usługi B2B i buduje zespół handlowy. Opis z mock researchu, do weryfikacji w KRS.`,
-    `${name} działa w usługach dla biznesu. Widać wzrost zatrudnienia i ręczny proces sprzedaży. To punkt startu, nie gotowy hak.`,
-    `${name} skaluje delivery i szuka powtarzalności w lejku. Strona i ogłoszenia sugerują fazę wzrostu, nie korporacyjny playbook.`,
-    `${name} wygląda na firmę właścicielską: krótkie decyzje, rozproszona wiedza o kliencie. Research ma dać jeden konkretny kąt rozmowy.`,
-    `${name} łączy sprzedaż projektową z retainerem. Cykl jest dłuższy niż przy transakcji, więc liczy się decydent i jeden zweryfikowany ból.`,
+    `${name} to polskie MŚP${industryClause}, które sprzedaje usługi B2B i buduje zespół handlowy. Opis z mock researchu, do weryfikacji w KRS.`,
+    `${name} działa${industryClause || ' w usługach dla biznesu'}. Widać wzrost zatrudnienia i ręczny proces sprzedaży. To punkt startu, nie gotowy hak.`,
+    `${name} skaluje delivery${industryClause} i szuka powtarzalności w lejku. Strona i ogłoszenia sugerują fazę wzrostu, nie korporacyjny playbook.`,
+    `${name} wygląda na firmę właścicielską${industryClause}: krótkie decyzje, rozproszona wiedza o kliencie. Research ma dać jeden konkretny kąt rozmowy.`,
+    `${name} łączy sprzedaż projektową z retainerem${industryClause}. Cykl jest dłuższy niż przy transakcji, więc liczy się decydent i jeden zweryfikowany ból.`,
   ], variant - 1, 0)
   const estimatedHeadcount = pick(['8-15', '12-19', '20-49', '50-99', '100-149'], variant - 1, 0)
 
