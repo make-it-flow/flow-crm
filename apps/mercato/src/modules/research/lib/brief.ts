@@ -33,10 +33,6 @@ export function applyResearchBrief(run: ResearchRun, brief: ResearchBriefInput):
   if (brief.estimatedHeadcount !== undefined) run.estimatedHeadcount = blankToNull(brief.estimatedHeadcount)
   if (brief.publicTendersParticipates !== undefined) run.publicTendersParticipates = brief.publicTendersParticipates ?? null
   if (brief.publicTenderSources !== undefined) run.publicTenderSources = brief.publicTenderSources ?? null
-  if (brief.fitVerdict !== undefined) run.fitVerdict = blankToNull(brief.fitVerdict)
-  if (brief.talkingPoints !== undefined) run.talkingPoints = blankToNull(brief.talkingPoints)
-  if (brief.callScript !== undefined) run.callScript = blankToNull(brief.callScript)
-  if (brief.emailDraft !== undefined) run.emailDraft = blankToNull(brief.emailDraft)
   if (brief.contactPerson !== undefined) {
     const person = normalizePersonSnapshot(brief.contactPerson)
     run.contactPerson = person ? { ...person } : null
@@ -45,5 +41,9 @@ export function applyResearchBrief(run: ResearchRun, brief: ResearchBriefInput):
     const person = normalizePersonSnapshot(brief.decisionMaker)
     run.decisionMaker = person ? { ...person } : null
   }
-  run.briefJson = { ...(run.briefJson ?? {}), ...brief }
+  if (brief.annualRevenue !== undefined) run.annualRevenue = blankToNull(brief.annualRevenue)
+  if (brief.profit !== undefined) run.profit = blankToNull(brief.profit)
+  if (brief.nip !== undefined) run.nip = blankToNull(brief.nip)
+  if (brief.krs !== undefined) run.krs = blankToNull(brief.krs)
+  if (brief.relatedCompanies !== undefined) run.relatedCompanies = blankToNull(brief.relatedCompanies)
 }

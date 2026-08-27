@@ -60,7 +60,7 @@ export class ResearchRun {
   genericProblems?: { text: string; source?: string | null }[] | null
 
   @Property({ type: 'json', nullable: true })
-  timeline?: { date: string; event: string; source?: string | null }[] | null
+  timeline?: { event: string; source?: string | null }[] | null
 
   @Property({ name: 'company_description', type: 'text', nullable: true })
   companyDescription?: string | null
@@ -74,23 +74,26 @@ export class ResearchRun {
   @Property({ name: 'public_tender_sources', type: 'json', nullable: true })
   publicTenderSources?: string[] | null
 
-  @Property({ name: 'fit_verdict', type: 'text', nullable: true })
-  fitVerdict?: string | null
-
-  @Property({ name: 'talking_points', type: 'text', nullable: true })
-  talkingPoints?: string | null
-
-  @Property({ name: 'call_script', type: 'text', nullable: true })
-  callScript?: string | null
-
-  @Property({ name: 'email_draft', type: 'text', nullable: true })
-  emailDraft?: string | null
-
   @Property({ name: 'contact_person', type: 'json', nullable: true })
   contactPerson?: ResearchPersonSnapshot | null
 
   @Property({ name: 'decision_maker', type: 'json', nullable: true })
   decisionMaker?: ResearchPersonSnapshot | null
+
+  @Property({ name: 'annual_revenue', type: 'text', nullable: true })
+  annualRevenue?: string | null
+
+  @Property({ name: 'profit', type: 'text', nullable: true })
+  profit?: string | null
+
+  @Property({ name: 'nip', type: 'text', nullable: true })
+  nip?: string | null
+
+  @Property({ name: 'krs', type: 'text', nullable: true })
+  krs?: string | null
+
+  @Property({ name: 'related_companies', type: 'text', nullable: true })
+  relatedCompanies?: string | null
 
   @Property({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string | null
@@ -100,9 +103,6 @@ export class ResearchRun {
 
   @Property({ name: 'finished_at', type: Date, nullable: true })
   finishedAt?: Date | null
-
-  @Property({ name: 'brief_json', type: 'json', nullable: true })
-  briefJson?: Record<string, unknown> | null
 
   @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
   createdAt: Date = new Date()

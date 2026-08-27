@@ -77,7 +77,7 @@ export function briefFromRun(run: ResearchRunDto | null): ResearchBriefForm {
     genericProblems: sourcedFromProblems(run?.genericProblems),
     timeline: run?.timeline?.length
       ? {
-          text: joinLines(run.timeline.map((item) => (item.date ? `${item.date}: ${item.event}` : item.event))),
+          text: joinLines(run.timeline.map((item) => item.event)),
           source: uniqueSources(run.timeline.map((item) => item.source)),
         }
       : emptySourced(),
@@ -98,7 +98,7 @@ export function briefToPayload(brief: ResearchBriefForm) {
     specificProblems: specific ? [{ text: specific.text, source: specific.source || null }] : [],
     topNews: news ? [{ title: news.text, url: null, source: news.source || null }] : [],
     genericProblems: generic ? [{ text: generic.text, source: generic.source || null }] : [],
-    timeline: history ? [{ date: '', event: history.text, source: history.source || null }] : [],
+    timeline: history ? [{ event: history.text, source: history.source || null }] : [],
     contactPerson: brief.contactPerson,
     decisionMaker: brief.decisionMaker,
   }

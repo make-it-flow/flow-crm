@@ -25,25 +25,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "brief_json": {
-          "name": "brief_json",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
-        "call_script": {
-          "name": "call_script",
+        "annual_revenue": {
+          "name": "annual_revenue",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -110,6 +93,23 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "contact_person": {
+          "name": "contact_person",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -127,6 +127,23 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "decision_maker": {
+          "name": "decision_maker",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamptz(6)",
@@ -143,23 +160,6 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "email_draft": {
-          "name": "email_draft",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
         },
         "error_message": {
           "name": "error_message",
@@ -212,23 +212,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "fit_verdict": {
-          "name": "fit_verdict",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
         "generic_problems": {
           "name": "generic_problems",
           "type": "jsonb",
@@ -262,6 +245,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "krs": {
+          "name": "krs",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
         },
         "main_insight": {
           "name": "main_insight",
@@ -297,6 +297,23 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "nip": {
+          "name": "nip",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "organization_id": {
           "name": "organization_id",
           "type": "uuid",
@@ -313,6 +330,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "profit": {
+          "name": "profit",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
         },
         "public_tender_sources": {
           "name": "public_tender_sources",
@@ -347,6 +381,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "boolean"
+        },
+        "related_companies": {
+          "name": "related_companies",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
         },
         "specific_problems": {
           "name": "specific_problems",
@@ -394,23 +445,6 @@
           "precision": null,
           "scale": null,
           "default": "'pending'",
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "talking_points": {
-          "name": "talking_points",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
           "comment": null,
           "collation": null,
           "enumItems": [],

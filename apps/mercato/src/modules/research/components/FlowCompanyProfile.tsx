@@ -141,7 +141,6 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
   const [websiteUrl, setWebsiteUrl] = React.useState('')
   const [sizeBucket, setSizeBucket] = React.useState('')
   const [relatedCompanies, setRelatedCompanies] = React.useState('')
-  const [salesStageIndex, setSalesStageIndex] = React.useState<number | null>(null)
   const [brief, setBrief] = React.useState<ResearchBriefForm>(() => briefFromRun(null))
   const tagsSectionControllerRef = React.useRef<TagsSectionController | null>(null)
   const initialLoadDoneRef = React.useRef(false)
@@ -169,7 +168,6 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
     if (item.websiteUrl) setWebsiteUrl(item.websiteUrl)
     if (item.estimatedHeadcount) setSizeBucket(item.estimatedHeadcount)
     if (item.relatedCompanies) setRelatedCompanies(item.relatedCompanies)
-    if (typeof item.salesStageIndex === 'number') setSalesStageIndex(item.salesStageIndex)
   }, [])
 
   const hydrateFromCompany = React.useCallback((payload: CompanyProfileData, nextRun: ResearchRunDto | null) => {
@@ -201,7 +199,6 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
     setWebsiteUrl(fromRun?.websiteUrl || payload.profile?.websiteUrl || '')
     setSizeBucket(fromRun?.estimatedHeadcount || payload.profile?.sizeBucket || '')
     setRelatedCompanies(fromRun?.relatedCompanies || cf.relatedCompanies)
-    setSalesStageIndex(typeof fromRun?.salesStageIndex === 'number' ? fromRun.salesStageIndex : null)
     setPeople(payload.people ?? [])
     if (fromRun) {
       setBrief(briefFromRun(fromRun))
@@ -307,11 +304,10 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
       .catch(() => setStages([]))
   }, [newestOpenDeal?.pipelineId])
 
-  const stepperIndex = React.useMemo(() => {
-    if (typeof salesStageIndex === 'number') return salesStageIndex
-    if (run?.status === 'done' && typeof run.salesStageIndex === 'number') return run.salesStageIndex
-    return resolveStepperIndex(newestOpenDeal, stages)
-  }, [newestOpenDeal, run, salesStageIndex, stages])
+  const stepperIndex = React.useMemo(
+    () => resolveStepperIndex(newestOpenDeal, stages),
+    [newestOpenDeal, stages],
+  )
 
   const markDirty = React.useCallback(() => {
     isDirtyRef.current = true
@@ -409,6 +405,13 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
         await updateCrud('research/runs', {
           companyId: data.company.id,
           ...briefToPayload(brief),
+          companyDescription: description,
+          websiteUrl,
+          annualRevenue: firmography.annualRevenue,
+          profit: firmography.profit,
+          nip: firmography.nip,
+          krs: firmography.krs,
+          relatedCompanies,
         })
       }
       flash(t('research.profile.saveSuccess'), 'success')

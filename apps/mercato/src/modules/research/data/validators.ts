@@ -20,7 +20,6 @@ const newsItemSchema = z.object({
 })
 
 const timelineItemSchema = z.object({
-  date: optionalText,
   event: z.string().min(1),
   source: optionalText,
 })
@@ -54,10 +53,6 @@ export const researchBriefSchema = z.object({
   estimatedHeadcount: optionalText,
   publicTendersParticipates: z.boolean().nullable().optional(),
   publicTenderSources: z.array(z.string()).nullable().optional(),
-  fitVerdict: optionalText,
-  talkingPoints: optionalText,
-  callScript: optionalText,
-  emailDraft: optionalText,
   contactPerson: researchPersonSchema.nullable().optional(),
   decisionMaker: researchPersonSchema.nullable().optional(),
   annualRevenue: optionalText,
@@ -65,13 +60,12 @@ export const researchBriefSchema = z.object({
   nip: optionalText,
   krs: optionalText,
   relatedCompanies: optionalText,
-  salesStageIndex: z.number().int().min(0).max(5).nullable().optional(),
   note: optionalText,
-}).passthrough()
+}).strict()
 
 export const researchRunUpdateSchema = researchBriefSchema.extend({
   companyId: z.string().uuid(),
-})
+}).strict()
 
 export const researchRunFailSchema = z.object({
   error: z.string().min(1),

@@ -1,5 +1,4 @@
 import type { ResearchBriefInput, ResearchPersonInput } from '../data/validators'
-import { FLOW_SALES_STAGES } from './constants'
 
 const CONTACTS: Array<Omit<ResearchPersonInput, 'email'> & { local: string }> = [
   {
@@ -194,7 +193,6 @@ export function buildMockResearchBrief(params: {
     ],
     timeline: [
       {
-        date: '',
         event: `2024-03: rejestracja i pierwsze lata działalności ${name}.\n2025-09: rozbudowa oferty i widoczny ruch rekrutacyjny.\n2026-06: sygnał wzrostu, nowe treści na stronie i aktywność przetargowa.`,
         source: 'Mock KRS / WWW / news',
       },
@@ -204,7 +202,6 @@ export function buildMockResearchBrief(params: {
     estimatedHeadcount,
     publicTendersParticipates: variant % 2 === 0,
     publicTenderSources: variant % 2 === 0 ? ['https://ezamowienia.gov.pl', 'Monitor Sądowy (mock)'] : [],
-    fitVerdict: pick(['dobry fit', 'warunkowy fit', 'dobry fit, do weryfikacji KRS'], variant - 1, 0),
     contactPerson: contact,
     decisionMaker,
     annualRevenue: pick(['860 tys. PLN', '1,8 mln PLN', '4,2 mln PLN', '7,6 mln PLN', '12,1 mln PLN'], variant - 1, 0),
@@ -218,7 +215,6 @@ export function buildMockResearchBrief(params: {
       `Fundacja ${name}\n${name} Digital sp. z o.o.`,
       `${name} Czech s.r.o.\n${name} DE GmbH`,
     ], variant - 1, 0),
-    salesStageIndex: (variant - 1) % FLOW_SALES_STAGES.length,
     note: pick([
       `Research ${name}: pierwszy kąt to discovery bez playbooka. Warto potwierdzić decydenta, zanim poleci mail.`,
       `Research ${name}: widać wzrost i ręczny lejek. Notatka z mocka, do weryfikacji na discovery.`,

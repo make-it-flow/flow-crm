@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { EntityManager } from '@mikro-orm/postgresql'
+import { z } from 'zod'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { createLogger } from '@open-mercato/shared/lib/logger'
@@ -32,6 +33,9 @@ export async function POST(req: Request, ctx: { params?: { id?: string } }) {
     })
     return NextResponse.json({ item: serializeResearchRun(run) })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid research brief', details: error.issues }, { status: 400 })
+    }
     const status = typeof (error as { status?: number }).status === 'number' ? (error as { status: number }).status : 500
     if (status !== 500) {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Request failed' }, { status })

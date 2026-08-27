@@ -1,5 +1,6 @@
 import { after, NextResponse } from 'next/server'
 import type { EntityManager } from '@mikro-orm/postgresql'
+import { z } from 'zod'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { createLogger } from '@open-mercato/shared/lib/logger'
@@ -207,6 +208,9 @@ export async function PUT(req: Request) {
     await em.flush()
     return NextResponse.json({ item: serializeResearchRun(run) })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid research brief', details: error.issues }, { status: 400 })
+    }
     logger.error('Failed to update research run', { err: error })
     return NextResponse.json({ error: 'Failed to update research run' }, { status: 500 })
   }
