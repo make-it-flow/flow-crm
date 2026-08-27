@@ -616,7 +616,7 @@ export default function CustomersCompaniesPage() {
           maxWidth: '260px',
         },
         cell: ({ row }) => (
-          <Link href={`/backend/customers/companies-v2/${row.original.id}`} className="font-medium hover:underline">
+          <Link href={`/backend/research/companies/${row.original.id}`} className="font-medium hover:underline">
             {row.original.name}
           </Link>
         ),
@@ -889,7 +889,7 @@ export default function CustomersCompaniesPage() {
           onSearchChange={(value) => { setSearch(value); setPage(1) }}
           searchPlaceholder={t('customers.companies.list.searchPlaceholder')}
           entityIds={[E.customers.customer_entity, E.customers.customer_company_profile]}
-          onRowClick={(row) => router.push(`/backend/customers/companies-v2/${row.id}`)}
+          onRowClick={(row) => router.push(`/backend/research/companies/${row.id}`)}
           perspective={{ tableId: extensionPoints.hosts.companiesTable.tableId }}
           sortable
           manualSorting
@@ -909,12 +909,17 @@ export default function CustomersCompaniesPage() {
                 {
                   id: 'view',
                   label: t('customers.companies.list.actions.view'),
+                  onSelect: () => { router.push(`/backend/research/companies/${row.id}`) },
+                },
+                {
+                  id: 'classic-view',
+                  label: t('customers.companies.list.actions.classicView', 'Klasyczny widok'),
                   onSelect: () => { router.push(`/backend/customers/companies-v2/${row.id}`) },
                 },
                 {
                   id: 'open-new-tab',
                   label: t('customers.companies.list.actions.openInNewTab'),
-                  onSelect: () => window.open(`/backend/customers/companies-v2/${row.id}`, '_blank', 'noopener'),
+                  onSelect: () => window.open(`/backend/research/companies/${row.id}`, '_blank', 'noopener'),
                 },
                 {
                   id: 'delete',

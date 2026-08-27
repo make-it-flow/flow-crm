@@ -489,6 +489,14 @@ export default function CompanyDetailV2Page({ params }: { params?: { id?: string
           <InjectionSpot spotId={extensionPoints.hosts.companyStatusBadges.spotId} context={injectionContext} data={data} />
 
           {/* Persistent company header */}
+          <div className="flex justify-end">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/backend/research/companies/${companyId}`}>
+                {t('customers.companies.detail.actions.researchView', 'Widok research')}
+              </Link>
+            </Button>
+          </div>
+
           <CompanyDetailHeader
             data={data}
             onTagsChange={handleTagsChange}

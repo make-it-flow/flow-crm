@@ -114,6 +114,7 @@ Guide shorthand: `<pkg>` = `packages/<pkg>/AGENTS.md` (so `core` = `packages/cor
 | Editing `apps/mercato/src/app/**`, `apps/mercato/src/i18n/**`, or env vars in `apps/mercato/.env.example` — MUST mirror into the create-app template in the same task (`yarn template:sync:fix`) | `create-app` → Template Sync Checklist |
 | Deploying a scaffolded app to Railway with `mercato deploy railway` | [`.ai/specs/2026-05-12-railway-one-command-deploy.md`](.ai/specs/2026-05-12-railway-one-command-deploy.md) + [`apps/docs/docs/deployment/railway.mdx`](apps/docs/docs/deployment/railway.mdx) + `cli` |
 | **Performance** | |
+| Boot local CRM (detect seeded `users`, then `yarn dev` or `yarn dev:greenfield`) | `.cursor/skills/om-boot-crm/SKILL.md` |
 | Profiling dev-mode memory (`yarn dev:profile`), ranking memory hogs, watcher / Vite-vs-Turbopack tradeoffs | `.ai/specs/2026-05-27-dev-mode-memory-quick-wins.md` + `scripts/profile-dev-rss.mjs` |
 | **Migration** | |
 | Migrating custom module code from MikroORM v6 to v7 (decorators, persist/flush, Knex→Kysely, ORM config, Jest setup) | `.ai/skills/om-migrate-mikro-orm/SKILL.md` |
