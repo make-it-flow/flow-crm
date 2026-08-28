@@ -4,7 +4,13 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/flow-crm}"
 BRANCH="${STG_BRANCH:-stg}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.fullapp.yml}"
-COMPOSE_SERVICES="${COMPOSE_SERVICES:-app postgres redis meilisearch}"
+# Traefik terminates TLS. The app issues Secure session cookies whenever
+# NODE_ENV=production, so plain HTTP leaves every login stuck at "session
+# expired" — the browser drops the cookie before the redirect lands.
+TRAEFIK_COMPOSE_FILE="${TRAEFIK_COMPOSE_FILE:-docker-compose.fullapp.traefik.yml}"
+TRAEFIK_STG_COMPOSE_FILE="${TRAEFIK_STG_COMPOSE_FILE:-docker-compose.fullapp.traefik.stg.yml}"
+TRAEFIK_CONFIG_DIR="${TRAEFIK_CONFIG_DIR:-/etc/mercato/traefik}"
+COMPOSE_SERVICES="${COMPOSE_SERVICES:-app postgres redis meilisearch traefik}"
 
 log() {
   printf '[stg-deploy] %s\n' "$*"
@@ -75,11 +81,85 @@ sync_env_from_doppler() {
   chmod 600 "${APP_DIR}/.env"
 }
 
+env_value() {
+  grep -m1 -E "^$1=" "${APP_DIR}/.env" | cut -d= -f2-
+}
+
+# Traefik's static and dynamic config files take no `${...}` interpolation, so
+# both are rendered here from the Doppler-provided environment.
+render_traefik_config() {
+  local host acme_email
+  host="$(env_value PLATFORM_PRIMARY_HOST)"
+  acme_email="$(env_value ACME_EMAIL)"
+  if [ -z "$host" ] || [ -z "$acme_email" ]; then
+    printf '[stg-deploy] PLATFORM_PRIMARY_HOST and ACME_EMAIL must be set in Doppler\n' >&2
+    exit 1
+  fi
+  log "rendering Traefik config for ${host}"
+  mkdir -p "$TRAEFIK_CONFIG_DIR"
+  cat > "${TRAEFIK_CONFIG_DIR}/traefik.yml" <<EOF
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+accessLog: {}
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: ${acme_email}
+      storage: /letsencrypt/acme.json
+      tlsChallenge: {}
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+EOF
+  # Only the platform host is routed. Staging serves no custom customer
+  # domains, and a catch-all router would ask Let's Encrypt for a certificate
+  # on every hostname a scanner sends at the droplet.
+  cat > "${TRAEFIK_CONFIG_DIR}/dynamic.yml" <<EOF
+http:
+  routers:
+    platform:
+      rule: "Host(\`${host}\`)"
+      priority: 100
+      entryPoints:
+        - websecure
+      service: app-upstream
+      tls:
+        certResolver: letsencrypt
+  services:
+    app-upstream:
+      loadBalancer:
+        servers:
+          - url: "http://app:${CONTAINER_PORT:-3000}"
+        passHostHeader: true
+EOF
+}
+
 build_and_start() {
   cd "$APP_DIR"
   require_cmd docker
   # shellcheck disable=SC2086
-  docker compose -f "$COMPOSE_FILE" --env-file .env up -d --build $COMPOSE_SERVICES
+  docker compose -f "$COMPOSE_FILE" -f "$TRAEFIK_COMPOSE_FILE" -f "$TRAEFIK_STG_COMPOSE_FILE" \
+    --env-file .env up -d --build $COMPOSE_SERVICES
 }
 
 main() {
@@ -91,8 +171,9 @@ main() {
   ensure_swap
   ensure_repo
   sync_env_from_doppler
+  render_traefik_config
   build_and_start
-  log "staging is up on :3000"
+  log "staging is up on https://${PLATFORM_PRIMARY_HOST:-138-68-111-199.sslip.io}"
 }
 
 main "$@"

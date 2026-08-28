@@ -1,0 +1,20 @@
+# Staging-only overlay on top of docker-compose.fullapp.traefik.yml.
+#
+# Two reasons it exists:
+#
+# 1. Traefik's Docker provider hardcodes Docker API version 1.24, and Docker
+#    Engine 29 on the staging droplet refuses anything below 1.40. The provider
+#    therefore never loads and the compose labels are never read. Routing moves
+#    to the file provider instead, which needs no Docker socket at all.
+# 2. Traefik's static config file does not interpolate `${...}`, so the shared
+#    docker/traefik/traefik.yml cannot receive ACME_EMAIL. Both files are
+#    rendered from the environment by scripts/stg-deploy.sh into
+#    /etc/mercato/traefik and mounted over the shared ones — compose merges
+#    volumes by container path, so these definitions win.
+
+services:
+  traefik:
+    image: traefik:v3.5
+    volumes:
+      - /etc/mercato/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - /etc/mercato/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
