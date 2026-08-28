@@ -34,6 +34,9 @@ export type ResearchRunDto = {
   krs: string | null
   relatedCompanies: string | null
   errorMessage: string | null
+  providerAgentId: string | null
+  providerRunId: string | null
+  deadlineAt: string | null
   startedAt: string | null
   finishedAt: string | null
   createdAt: string
@@ -78,6 +81,9 @@ export function serializeResearchRun(run: ResearchRun): ResearchRunDto {
     krs: run.krs ?? null,
     relatedCompanies: run.relatedCompanies ?? null,
     errorMessage: run.errorMessage ?? null,
+    providerAgentId: run.providerAgentId ?? null,
+    providerRunId: run.providerRunId ?? null,
+    deadlineAt: run.deadlineAt ? run.deadlineAt.toISOString() : null,
     startedAt: run.startedAt ? run.startedAt.toISOString() : null,
     finishedAt: run.finishedAt ? run.finishedAt.toISOString() : null,
     createdAt: run.createdAt.toISOString(),

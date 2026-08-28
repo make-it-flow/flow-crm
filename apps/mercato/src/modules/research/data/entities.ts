@@ -101,6 +101,20 @@ export class ResearchRun {
   @Property({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string | null
 
+  // Written before the provider is called, so a lost response never leaves an untracked agent.
+  @Property({ name: 'provider_agent_id', type: 'text', nullable: true })
+  providerAgentId?: string | null
+
+  @Property({ name: 'provider_run_id', type: 'text', nullable: true })
+  providerRunId?: string | null
+
+  @Property({ name: 'deadline_at', type: Date, nullable: true })
+  deadlineAt?: Date | null
+
+  // Non-null means the single allowed extension has been spent.
+  @Property({ name: 'deadline_extended_at', type: Date, nullable: true })
+  deadlineExtendedAt?: Date | null
+
   @Property({ name: 'started_at', type: Date, nullable: true })
   startedAt?: Date | null
 

@@ -1,4 +1,4 @@
-export type EnrykResearchRequest = {
+export type ResearchRequest = {
   companyName: string
   industry: string | null
   websiteUrl: string | null
@@ -10,11 +10,11 @@ function blankToNull(value?: string | null): string | null {
   return trimmed.length ? trimmed : null
 }
 
-export function buildEnrykResearchRequest(input: {
+export function buildResearchRequest(input: {
   companyName?: string | null
   industry?: string | null
   websiteUrl?: string | null
-}): EnrykResearchRequest {
+}): ResearchRequest {
   return {
     companyName: (input.companyName ?? '').trim() || 'Firma',
     industry: blankToNull(input.industry),

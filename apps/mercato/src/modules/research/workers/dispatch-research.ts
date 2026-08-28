@@ -4,17 +4,26 @@ import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { createLogger } from '@open-mercato/shared/lib/logger'
 import { completeResearchRun, failResearchRun } from '../lib/completeRun'
 import { LIVE_RUN_STATUSES, MOCK_RESEARCH_DELAY_MS } from '../lib/constants'
-import { buildEnrykResearchRequest } from '../lib/enrykRequest'
+import {
+  createCursorResearchAgent,
+  CursorCloudTransientError,
+  describeMissingCursorCloudConfig,
+  newCursorAgentId,
+  resolveCursorCloudConfig,
+} from '../lib/cursorCloud'
+import { initialDeadline } from '../lib/liveDeadline'
 import { buildMockResearchBrief } from '../lib/mockBrief'
 import { nextMockVariant } from '../lib/mockVariant'
 import { resolveResearchRunEntity } from '../lib/orm'
 import { RESEARCH_DISPATCH_QUEUE, type ResearchDispatchPayload } from '../lib/queue'
+import { isMockResearchMode } from '../lib/researchMode'
+import { buildResearchRequest } from '../lib/researchRequest'
 
-const logger = createLogger('research').child({ component: 'dispatch-enryk' })
+const logger = createLogger('research').child({ component: 'dispatch-research' })
 
 export const metadata: WorkerMeta = {
   queue: RESEARCH_DISPATCH_QUEUE,
-  id: 'research:dispatch-enryk',
+  id: 'research:dispatch-research',
   concurrency: 2,
 }
 
@@ -71,13 +80,41 @@ export default async function handle(
     run.startedAt = run.startedAt ?? new Date()
     await em.flush()
 
-    const mode = (process.env.ENRYK_MODE ?? 'mock').trim().toLowerCase()
-    if (mode === 'live') {
-      await failResearchRun(em, {
-        runId: payload.runId,
-        tenantId: payload.tenantId,
-        organizationId: payload.organizationId,
-        error: 'Enryk niepodłączony',
+    if (!isMockResearchMode()) {
+      const config = resolveCursorCloudConfig()
+      if (!config) {
+        await failResearchRun(em, {
+          runId: payload.runId,
+          tenantId: payload.tenantId,
+          organizationId: payload.organizationId,
+          error: describeMissingCursorCloudConfig(),
+        })
+        return
+      }
+
+      // Persisted before the call so a lost response still leaves a traceable agent, and so a
+      // retry reuses the same id instead of paying for a second one.
+      const agentId = run.providerAgentId ?? newCursorAgentId()
+      run.providerAgentId = agentId
+      run.deadlineAt = run.deadlineAt ?? initialDeadline()
+      await em.flush()
+
+      const dispatch = await createCursorResearchAgent({
+        config,
+        agentId,
+        runId: run.id,
+        company: buildResearchRequest(run),
+      })
+      if (dispatch.providerRunId) {
+        run.providerRunId = dispatch.providerRunId
+        await em.flush()
+      }
+      logger.info('Research dispatched to Cursor Cloud', {
+        runId: run.id,
+        agentId: dispatch.agentId,
+        providerRunId: dispatch.providerRunId,
+        environment: config.environmentName,
+        alreadyExisted: dispatch.alreadyExisted,
       })
       return
     }
@@ -93,11 +130,17 @@ export default async function handle(
       tenantId: payload.tenantId,
       organizationId: payload.organizationId,
       brief: buildMockResearchBrief({
-        ...buildEnrykResearchRequest(run),
+        ...buildResearchRequest(run),
         variant,
       }),
     })
   } catch (error) {
+    // Transient provider failures must stay retryable: the run keeps its agent id, so the retry
+    // hits a conflict and settles instead of spawning a second paid agent.
+    if (error instanceof CursorCloudTransientError) {
+      logger.warn('Research dispatch will retry', { runId: payload.runId, err: error })
+      throw error
+    }
     logger.error('Research dispatch failed', { runId: payload.runId, err: error })
     await markFailed(em, payload, error)
   }

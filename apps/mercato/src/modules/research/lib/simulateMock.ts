@@ -3,7 +3,7 @@ import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { createLogger } from '@open-mercato/shared/lib/logger'
 import { completeResearchRun, failResearchRun } from './completeRun'
 import { MOCK_RESEARCH_DELAY_MS } from './constants'
-import { buildEnrykResearchRequest } from './enrykRequest'
+import { buildResearchRequest } from './researchRequest'
 import { buildMockResearchBrief } from './mockBrief'
 import { nextMockVariant } from './mockVariant'
 
@@ -38,7 +38,7 @@ export async function finishMockResearchRun(params: {
       tenantId: params.tenantId,
       organizationId: params.organizationId,
       brief: buildMockResearchBrief({
-        ...buildEnrykResearchRequest(params),
+        ...buildResearchRequest(params),
         variant,
       }),
     })

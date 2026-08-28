@@ -1,6 +1,6 @@
 import { createModuleQueue, type Queue } from '@open-mercato/queue'
 
-export const RESEARCH_DISPATCH_QUEUE = 'research-dispatch-enryk'
+export const RESEARCH_DISPATCH_QUEUE = 'research-dispatch'
 
 export type ResearchDispatchPayload = {
   runId: string

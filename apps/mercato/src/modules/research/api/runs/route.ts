@@ -1,4 +1,5 @@
 import { after, NextResponse } from 'next/server'
+import { LockMode } from '@mikro-orm/core'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import { z } from 'zod'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
@@ -9,13 +10,18 @@ import { researchRunCreateSchema, researchRunListQuerySchema, researchRunUpdateS
 import { applyResearchBrief } from '../../lib/brief'
 import { failResearchRun } from '../../lib/completeRun'
 import { LIVE_RUN_STATUSES } from '../../lib/constants'
-import { isMockEnrykMode } from '../../lib/enrykMode'
+import { isMockResearchMode } from '../../lib/researchMode'
 import { resolveIndustryLabel } from '../../lib/industry'
 import { settleLiveRunsForCompany } from '../../lib/expireStale'
 import { resolveResearchRunEntity } from '../../lib/orm'
 import { finishMockResearchRun } from '../../lib/simulateMock'
 import { getResearchDispatchQueue } from '../../lib/queue'
+import {
+  resolveResearchAvailability,
+  type ResearchAvailability,
+} from '../../lib/researchAvailability'
 import { serializeResearchRun } from '../../lib/serializeRun'
+import type { ResearchRun as ResearchRunEntity } from '../../data/entities'
 
 const logger = createLogger('research').child({ component: 'runs-route' })
 
@@ -31,6 +37,34 @@ async function resolveScope(req: Request) {
   if (!auth.tenantId) return { error: NextResponse.json({ error: 'Tenant required' }, { status: 400 }) }
   if (!auth.orgId) return { error: NextResponse.json({ error: 'Organization scope required' }, { status: 400 }) }
   return { auth, tenantId: auth.tenantId, organizationId: auth.orgId }
+}
+
+async function loadResearchAvailability(
+  em: EntityManager,
+  ResearchRun: typeof ResearchRunEntity,
+  scope: { tenantId: string; organizationId: string; companyId: string },
+): Promise<ResearchAvailability> {
+  const [liveRun, latestSuccessfulRun] = await Promise.all([
+    em.findOne(
+      ResearchRun,
+      {
+        ...scope,
+        status: { $in: [...LIVE_RUN_STATUSES] },
+        deletedAt: null,
+      },
+      { orderBy: { createdAt: 'DESC' } },
+    ),
+    em.findOne(
+      ResearchRun,
+      {
+        ...scope,
+        status: 'done',
+        deletedAt: null,
+      },
+      { orderBy: { finishedAt: 'DESC' } },
+    ),
+  ])
+  return resolveResearchAvailability({ liveRun, latestSuccessfulRun })
 }
 
 export async function GET(req: Request) {
@@ -58,7 +92,15 @@ export async function GET(req: Request) {
       },
       { orderBy: { createdAt: 'DESC' } },
     )
-    return NextResponse.json({ item: run ? serializeResearchRun(run) : null })
+    const availability = await loadResearchAvailability(em, ResearchRun, {
+      tenantId,
+      organizationId,
+      companyId: query.companyId,
+    })
+    return NextResponse.json({
+      item: run ? serializeResearchRun(run) : null,
+      availability,
+    })
   } catch (error) {
     logger.error('Failed to load research run', { err: error })
     return NextResponse.json({ error: 'Failed to load research run' }, { status: 500 })
@@ -75,51 +117,72 @@ export async function POST(req: Request) {
     const container = await createRequestContainer()
     const em = container.resolve('em') as EntityManager
 
-    const company = await em.findOne(CustomerEntity, {
-      id: input.companyId,
-      tenantId,
-      organizationId,
-      kind: 'company',
-      deletedAt: null,
-    })
-    if (!company) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 })
-    }
-
-    const ResearchRun = await resolveResearchRunEntity(em)
     await settleLiveRunsForCompany(em, {
       tenantId,
       organizationId,
-      companyId: company.id,
+      companyId: input.companyId,
     })
-    const live = await em.findOne(ResearchRun, {
-      tenantId,
-      organizationId,
-      companyId: company.id,
-      status: { $in: [...LIVE_RUN_STATUSES] },
-      deletedAt: null,
-    })
-    if (live) {
-      return NextResponse.json({ error: 'Research already running', runId: live.id, status: live.status }, { status: 409 })
-    }
 
-    const profile = await em.findOne(CustomerCompanyProfile, { entity: company })
-    const industry = await resolveIndustryLabel(em, {
-      tenantId,
-      organizationId,
-      industry: profile?.industry,
+    const creation = await em.transactional(async (transactionalEm) => {
+      const company = await transactionalEm.findOne(
+        CustomerEntity,
+        {
+          id: input.companyId,
+          tenantId,
+          organizationId,
+          kind: 'company',
+          deletedAt: null,
+        },
+        { lockMode: LockMode.PESSIMISTIC_WRITE },
+      )
+      if (!company) return { kind: 'not-found' as const }
+
+      const ResearchRun = await resolveResearchRunEntity(transactionalEm)
+      const availability = await loadResearchAvailability(transactionalEm, ResearchRun, {
+        tenantId,
+        organizationId,
+        companyId: company.id,
+      })
+      if (!availability.canStart) {
+        return { kind: 'blocked' as const, availability }
+      }
+
+      const profile = await transactionalEm.findOne(CustomerCompanyProfile, { entity: company })
+      const industry = await resolveIndustryLabel(transactionalEm, {
+        tenantId,
+        organizationId,
+        industry: profile?.industry,
+      })
+      const now = new Date()
+      const run = transactionalEm.create(ResearchRun, {
+        tenantId,
+        organizationId,
+        companyId: company.id,
+        companyName: company.displayName,
+        websiteUrl: profile?.websiteUrl ?? null,
+        industry,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      })
+      transactionalEm.persist(run)
+      await transactionalEm.flush()
+      return { kind: 'created' as const, company, run }
     })
-    const run = em.create(ResearchRun, {
-      tenantId,
-      organizationId,
-      companyId: company.id,
-      companyName: company.displayName,
-      websiteUrl: profile?.websiteUrl ?? null,
-      industry,
-      status: 'pending',
-    })
-    em.persist(run)
-    await em.flush()
+
+    if (creation.kind === 'not-found') {
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 })
+    }
+    if (creation.kind === 'blocked') {
+      return NextResponse.json(
+        {
+          error: 'research_unavailable',
+          availability: creation.availability,
+        },
+        { status: 409 },
+      )
+    }
+    const { company, run } = creation
 
     try {
       await getResearchDispatchQueue().enqueue({
@@ -129,7 +192,7 @@ export async function POST(req: Request) {
       })
     } catch (error) {
       logger.warn('Failed to enqueue research dispatch', { runId: run.id, err: error })
-      if (!isMockEnrykMode()) {
+      if (!isMockResearchMode()) {
         await failResearchRun(em, {
           runId: run.id,
           tenantId,
@@ -140,7 +203,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (isMockEnrykMode()) {
+    if (isMockResearchMode()) {
       after(() => {
         void finishMockResearchRun({
           runId: run.id,
@@ -154,7 +217,12 @@ export async function POST(req: Request) {
       })
     }
 
-    return NextResponse.json({ runId: run.id, status: run.status, item: serializeResearchRun(run) }, { status: 202 })
+    return NextResponse.json({
+      runId: run.id,
+      status: run.status,
+      item: serializeResearchRun(run),
+      availability: resolveResearchAvailability({ liveRun: run }),
+    }, { status: 202 })
   } catch (error) {
     logger.error('Failed to start research run', { err: error })
     return NextResponse.json({ error: 'Failed to start research run' }, { status: 500 })
@@ -212,6 +280,8 @@ export async function PUT(req: Request) {
         status: 'done',
         startedAt: now,
         finishedAt: now,
+        createdAt: now,
+        updatedAt: now,
       })
       em.persist(run)
     }

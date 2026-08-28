@@ -10,7 +10,7 @@ import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { useConfirmDialog } from '@open-mercato/ui/backend/confirm-dialog'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
-import { apiCallOrThrow, readApiResultOrThrow, withScopedApiRequestHeaders } from '@open-mercato/ui/backend/utils/apiCall'
+import { apiCall, apiCallOrThrow, readApiResultOrThrow, withScopedApiRequestHeaders } from '@open-mercato/ui/backend/utils/apiCall'
 import { buildOptimisticLockHeader } from '@open-mercato/ui/backend/utils/optimisticLock'
 import { deleteCrud, updateCrud } from '@open-mercato/ui/backend/utils/crud'
 import { surfaceRecordConflict } from '@open-mercato/ui/backend/conflicts'
@@ -44,6 +44,7 @@ import { SalesStageStepper } from './SalesStageStepper'
 import { briefFromRun, briefToPayload, type ResearchBriefForm } from '../lib/briefForm'
 import { FIRMOGRAPHY_CF_KEYS, FLOW_SALES_STAGES, RESEARCH_POLL_MS } from '../lib/constants'
 import { readFirmographyCustomFields, toCrmAnnualRevenue, toCrmWebsiteUrl, toDateInputValue } from '../lib/customFields'
+import type { ResearchAvailability } from '../lib/researchAvailability'
 import type { ResearchRunDto } from '../lib/serializeRun'
 import { isFreshLiveRun, isLiveRunStatus } from '../lib/staleRun'
 
@@ -70,6 +71,13 @@ type PipelineStageRow = {
   pipelineId: string
   label: string
   order: number
+}
+
+const AVAILABLE_RESEARCH: ResearchAvailability = {
+  canStart: true,
+  reason: null,
+  availableAt: null,
+  runId: null,
 }
 
 function formatAddress(address: CompanyAddress | null | undefined): string {
@@ -117,6 +125,8 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
 
   const [data, setData] = React.useState<CompanyProfileData | null>(null)
   const [run, setRun] = React.useState<ResearchRunDto | null>(null)
+  const [researchAvailability, setResearchAvailability] =
+    React.useState<ResearchAvailability>(AVAILABLE_RESEARCH)
   const [stages, setStages] = React.useState<PipelineStageRow[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -210,12 +220,16 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
   }, [])
 
   const loadRun = React.useCallback(async (id: string) => {
-    const payload = await readApiResultOrThrow<{ item: ResearchRunDto | null }>(
+    const payload = await readApiResultOrThrow<{
+      item: ResearchRunDto | null
+      availability: ResearchAvailability
+    }>(
       `/api/research/runs?companyId=${encodeURIComponent(id)}`,
       undefined,
       { errorMessage: t('research.profile.loadError') },
     )
     const item = payload.item ?? null
+    setResearchAvailability(payload.availability ?? AVAILABLE_RESEARCH)
     const previousStatus = lastRunStatusRef.current
     lastRunStatusRef.current = item?.status ?? null
     setRun(item)
@@ -228,7 +242,12 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
       }
     }
     if (item?.status === 'failed' && previousStatus && isLiveRunStatus(previousStatus)) {
-      flash(item.errorMessage?.trim() || t('research.profile.runFailed'), 'error')
+      flash(
+        item.errorMessage === 'research.profile.invalidCallbackPayload'
+          ? t('research.profile.invalidCallbackPayload')
+          : item.errorMessage?.trim() || t('research.profile.runFailed'),
+        'error',
+      )
     }
     return item
   }, [applyFirmographyFromRun, t])
@@ -335,13 +354,14 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
     })
     if (!approved) return
     try {
-      await runMutation(
-        () => withScopedApiRequestHeaders(
+      await runMutation({
+        operation: () => withScopedApiRequestHeaders(
           buildOptimisticLockHeader(data?.company?.updatedAt),
           () => deleteCrud('customers/companies', { id }),
         ),
-        { id, operation: 'deleteCompany' },
-      )
+        context: { id, operation: 'deleteCompany' },
+        mutationPayload: { id },
+      })
     } catch (err) {
       if (!surfaceRecordConflict(err, t)) {
         flash(err instanceof Error ? err.message : t('customers.companies.detail.deleteError', 'Failed to delete company.'), 'error')
@@ -433,21 +453,40 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
     if (!companyId) return
     setIsRunning(true)
     try {
-      const response = await fetch('/api/research/runs', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ companyId }),
+      const result = await runMutation({
+        operation: () => apiCall<{
+          item?: ResearchRunDto | null
+          availability?: ResearchAvailability
+        }>('/api/research/runs', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ companyId }),
+        }),
+        context: { id: companyId, operation: 'runResearch' },
+        mutationPayload: { companyId },
       })
-      if (response.status === 409) {
-        flash(t('research.profile.runBusy'), 'error')
+      const payload = result.result
+      if (result.status === 409) {
+        const nextAvailability = payload?.availability ?? researchAvailability
+        setResearchAvailability(nextAvailability)
+        const availableAt = nextAvailability.availableAt
+          ? new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' })
+            .format(new Date(nextAvailability.availableAt))
+          : null
+        flash(
+          nextAvailability.reason === 'cooldown' && availableAt
+            ? t('research.profile.runCooldownUntil', { availableAt })
+            : t('research.profile.runBusy'),
+          'error',
+        )
         await loadRun(companyId)
         return
       }
-      if (!response.ok) {
+      if (!result.ok) {
         throw new Error(t('research.profile.runError'))
       }
       flash(t('research.profile.runStarted'), 'success')
-      const payload = await response.json().catch(() => null) as { item?: ResearchRunDto | null } | null
+      if (payload?.availability) setResearchAvailability(payload.availability)
       const item = payload?.item ?? await loadRun(companyId)
       if (item) {
         lastRunStatusRef.current = item.status
@@ -464,7 +503,7 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
     } finally {
       setIsRunning(false)
     }
-  }, [applyFirmographyFromRun, companyId, loadRun, t])
+  }, [applyFirmographyFromRun, companyId, loadRun, researchAvailability, runMutation, t])
 
   if (isLoading) {
     return (
@@ -512,17 +551,40 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
   const id = data.company.id
   const displayName = coerceDisplayName(data.company.displayName)
   const runLive = isFreshLiveRun(run)
+  const availableAtLabel = researchAvailability.availableAt
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' })
+      .format(new Date(researchAvailability.availableAt))
+    : null
+  const researchBlockMessage = researchAvailability.reason === 'cooldown' && availableAtLabel
+    ? t('research.profile.runCooldownUntil', { availableAt: availableAtLabel })
+    : researchAvailability.reason === 'running'
+      ? availableAtLabel
+        ? t('research.profile.runRunningUntil', { availableAt: availableAtLabel })
+        : t('research.profile.runBusy')
+      : null
 
   return (
     <Page>
       <PageBody>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {researchBlockMessage ? (
+              <span className="text-xs text-muted-foreground">{researchBlockMessage}</span>
+            ) : null}
             <Button asChild variant="outline" size="sm">
               <Link href={`/backend/customers/companies-v2/${id}`}>{t('research.profile.classicView')}</Link>
             </Button>
-            <Button type="button" size="sm" onClick={() => { void handleRunResearch() }} disabled={isRunning || runLive}>
-              {runLive ? t('research.profile.runQueued') : t('research.profile.runResearch')}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => { void handleRunResearch() }}
+              disabled={isRunning || runLive || !researchAvailability.canStart}
+            >
+              {researchAvailability.reason === 'running'
+                ? t('research.profile.runQueued')
+                : researchAvailability.reason === 'cooldown'
+                  ? t('research.profile.runCooldown')
+                  : t('research.profile.runResearch')}
             </Button>
           </div>
 
