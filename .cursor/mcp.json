@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "digitalocean-droplets": {
+      "command": "npx",
+      "args": ["-y", "@digitalocean/mcp", "--services", "droplets"],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    "doppler": {
+      "command": "npx",
+      "args": ["-y", "@dopplerhq/mcp-server"]
+    }
+  }
+}
