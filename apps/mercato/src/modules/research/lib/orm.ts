@@ -18,9 +18,7 @@ function findRegisteredClass(em: EntityManager): typeof ResearchRun | null {
   const metadata = em.getMetadata()
   if (metadata.has(ResearchRun)) return ResearchRun
 
-  const byName = metadata.find('research.ResearchRun')
-    ?? metadata.find('ResearchRun')
-    ?? metadata.getByClassName('ResearchRun', false)
+  const byName = metadata.getByClassName('ResearchRun', false)
   const named = classFromMeta(byName)
   if (named) return named
 
