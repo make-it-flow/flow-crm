@@ -210,6 +210,15 @@ services:
       GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-}
+      # RESEARCH_MODE=live makes the dispatch worker call Cursor Cloud, which
+      # needs both the API key and an environment name from the dashboard.
+      RESEARCH_MODE: ${RESEARCH_MODE:-mock}
+      RESEARCH_CURSOR_API_KEY: ${RESEARCH_CURSOR_API_KEY:-}
+      RESEARCH_CURSOR_ENVIRONMENT: ${RESEARCH_CURSOR_ENVIRONMENT:-}
+      RESEARCH_CURSOR_MODEL: ${RESEARCH_CURSOR_MODEL:-}
+      # An empty value means "no cooldown" to resolveResearchSuccessCooldownMs,
+      # so the fallback mirrors DEFAULT_RESEARCH_SUCCESS_COOLDOWN_MS (24h).
+      RESEARCH_SUCCESS_COOLDOWN_MS: ${RESEARCH_SUCCESS_COOLDOWN_MS:-86400000}
       MEILISEARCH_HOST: http://mercato-meilisearch-${DEPLOY_ENV:-local}:7700
       MEILISEARCH_API_KEY: ${MEILISEARCH_MASTER_KEY:-meilisearch-dev-key}
       NEXT_PUBLIC_UPGRADE_ACTIONS_ENABLED: ${NEXT_PUBLIC_UPGRADE_ACTIONS_ENABLED:-true}
