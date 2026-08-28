@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: flow-crm-stg-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -29,6 +29,16 @@ jobs:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: doppler secrets --only-names
 
+      - name: Wait for droplet SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.STG_HOST }}
+          username: ${{ vars.STG_USER }}
+          key: ${{ secrets.STG_SSH_PRIVATE_KEY }}
+          timeout: 2m
+          command_timeout: 30s
+          script: echo ssh-ok
+
       - name: Copy deploy script
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -38,6 +48,8 @@ jobs:
           source: scripts/stg-deploy.sh
           target: /tmp
           strip_components: 1
+          timeout: 2m
+          overwrite: true
 
       - name: Build on flow-crm-stg droplet
         uses: appleboy/ssh-action@v1.2.2
