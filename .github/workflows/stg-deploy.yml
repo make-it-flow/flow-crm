@@ -50,7 +50,6 @@ jobs:
           key: ${{ secrets.STG_SSH_PRIVATE_KEY }}
           envs: DOPPLER_TOKEN,STG_BRANCH
           command_timeout: 180m
-          script_stop: true
           script: |
             chmod +x /tmp/stg-deploy.sh
             /tmp/stg-deploy.sh

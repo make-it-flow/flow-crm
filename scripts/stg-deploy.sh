@@ -31,13 +31,7 @@ install_doppler() {
     return 0
   fi
   log "installing Doppler CLI"
-  curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
-    'https://packages.doppler.com/public/cli/gpg.DE2F724C4ACBE3C2.key' \
-    | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg
-  echo 'deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main' \
-    > /etc/apt/sources.list.d/doppler-cli.list
-  apt-get update -qq
-  apt-get install -y -qq doppler
+  curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
 }
 
 ensure_swap() {
