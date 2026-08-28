@@ -35,7 +35,7 @@ Run in order. Each step has a done check. All probes are read-only except starti
 curl -sI -o /dev/null -w '%{http_code}' http://localhost:3000/backend
 ```
 
-Done: status is `200` or `302`. Report http://localhost:3000/backend and http://localhost:4000. Stop. Do not start another process.
+Done: status is `200` or `302`. Then [Handoff](#5-handoff). Stop. Do not start another process.
 
 If curl fails, continue.
 
@@ -114,7 +114,7 @@ docker compose up -d   # only if postgres is not healthy
 yarn dev               # background; not --greenfield
 ```
 
-Done: `http://localhost:3000/backend` or `http://localhost:4000` returns 200/302.
+Done: `http://localhost:3000/backend` or `http://localhost:4000` returns 200/302. Then [Handoff](#5-handoff).
 
 ## 4. Fresh (empty DB or confirmed wipe)
 
@@ -122,6 +122,32 @@ Done: `http://localhost:3000/backend` or `http://localhost:4000` returns 200/302
 yarn dev:greenfield    # background; drops tables, flushes Redis, seeds, then watches
 ```
 
-Done: same URLs as Start. Read the init log for the login. Demo default when env does not override: `superadmin@acme.com` / `secret`.
+Done: same URLs as Start. Then [Handoff](#5-handoff). Prefer the init-log banner for emails/passwords.
+
+## 5. Handoff
+
+Every successful path (already-up, Start, Fresh) ends here. The reply always includes login **and** SQL — URLs alone are not done.
+
+Read live values from `apps/mercato/.env`: `DATABASE_URL`, `POSTGRES_*`, `OM_INIT_ADMIN_EMAIL`, `OM_INIT_ADMIN_PASSWORD`, `OM_INIT_EMPLOYEE_EMAIL`, `OM_INIT_EMPLOYEE_PASSWORD`. After Fresh, prefer the initialize banner over defaults.
+
+Print both blocks with those live values:
+
+**Login** — http://localhost:3000/backend (splash http://localhost:4000)
+
+| Role | Email | Password |
+|------|--------|----------|
+| Superadmin | from banner / env | from banner / env |
+| Admin | from banner / env | from banner / env |
+| Employee | from banner / env | from banner / env |
+
+When env does not override: `superadmin@acme.com`, `admin@acme.com`, `employee@acme.com`, password `secret`.
+
+**SQL** — `DATABASE_URL` is the app's database (`localhost:5432` may be Homebrew Postgres, not `mercato-postgres`)
+
+- host, port, user, password, database
+- full connection string
+- connect with `psql "$DATABASE_URL"` (same process the app uses)
 
 Research profile after boot: `/backend/research/companies/:id`.
+
+Done: the user-facing message contains the login table and the SQL host/port/user/password/database from `.env`.
