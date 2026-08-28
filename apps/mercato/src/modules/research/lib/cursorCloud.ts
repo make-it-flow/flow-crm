@@ -4,7 +4,7 @@ import { fetchWithTimeout } from "@open-mercato/shared/lib/http/fetchWithTimeout
 import type { ResearchRequest } from "./researchRequest";
 
 export const RESEARCH_PROMPT_NOTION_URL =
-  "https://www.notion.so/makeitflow/Prompt-research-firmy-do-ResearchBrief-3ca9e64056588145b44dee5c7fcd3a23";
+  "https://www.notion.so/makeitflow/Prompt-odkrywanie-poszukiwanie-nowych-firm-3ca9e6405658813fa06fc0b08ee676c2";
 
 const CURSOR_AGENTS_URL = "https://api.cursor.com/v1/agents";
 // Creating an agent has been measured returning well past 20s even though the agent itself is
@@ -106,6 +106,7 @@ function buildResearchPrompt(params: {
     `  POST /api/research/runs/${runId}/fail       gdy research jest niemożliwy`,
     "Przebieg bez /complete albo /fail jest przebiegiem nieudanym.",
     "",
+    "Fazę 9 i sekcję 13 instrukcji pomijasz w całości. Callback jest jedynym wynikiem.",
     "Nie tworzysz ani nie edytujesz niczego w Notionie. Notion tylko czytasz.",
     "Nigdy nie wypisuj wartości MERCATO_API_KEY.",
     "Nie modyfikuj żadnych plików ani repozytoriów.",
