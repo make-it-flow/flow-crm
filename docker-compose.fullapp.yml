@@ -128,6 +128,11 @@ services:
       context: .
       args:
         - CONTAINER_PORT=${CONTAINER_PORT:-3000}
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-}
+        - NEXT_PUBLIC_QUEUE_STRATEGY=${NEXT_PUBLIC_QUEUE_STRATEGY:-local}
+        - NEXT_PUBLIC_UPGRADE_ACTIONS_ENABLED=${NEXT_PUBLIC_UPGRADE_ACTIONS_ENABLED:-true}
+        - NEXT_PUBLIC_UMES_DEVTOOLS=${NEXT_PUBLIC_UMES_DEVTOOLS:-}
+        - NEXT_PUBLIC_OM_EXAMPLE_CHECKOUT_TEST_INJECTIONS_ENABLED=${NEXT_PUBLIC_OM_EXAMPLE_CHECKOUT_TEST_INJECTIONS_ENABLED:-}
     image: open-mercato/app:${DEPLOY_ENV:-local}
     # Without a restart policy the app stays down after a daemon/host reboot
     # while mcp and opencode (restart: unless-stopped) wait on it forever.
@@ -153,6 +158,9 @@ services:
     # Traefik labels are declared in docker-compose.fullapp.traefik.yml so
     # external reverse proxies (Dokploy, etc.) that also watch the Docker
     # socket don't accidentally pick them up.
+    env_file:
+      - path: .env
+        required: false
     environment:
       TENANT_DATA_ENCRYPTION: ${TENANT_DATA_ENCRYPTION:-true}
       TENANT_DATA_ENCRYPTION_DEBUG: ${TENANT_DATA_ENCRYPTION_DEBUG:-false}
