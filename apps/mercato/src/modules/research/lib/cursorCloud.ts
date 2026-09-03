@@ -7,6 +7,8 @@ export const RESEARCH_PROMPT_NOTION_URL =
   "https://www.notion.so/makeitflow/Prompt-research-firmy-do-ResearchBrief-3ca9e64056588145b44dee5c7fcd3a23";
 
 const CURSOR_AGENTS_URL = "https://api.cursor.com/v1/agents";
+const CURSOR_MODELS_URL = "https://api.cursor.com/v1/models";
+const LIST_MODELS_TIMEOUT_MS = 15_000;
 // Creating an agent has been measured returning well past 20s even though the agent itself is
 // live within seconds. A short timeout only produces retries and orphaned agents.
 const CREATE_AGENT_TIMEOUT_MS = 60_000;
@@ -23,10 +25,25 @@ const agentStatusResponseSchema = z.object({
   status: z.string().min(1).optional(),
 });
 
+const cursorModelItemSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().min(1),
+  description: z.string().optional(),
+});
+
+const cursorModelsResponseSchema = z.object({
+  items: z.array(cursorModelItemSchema),
+});
+
 export type CursorCloudConfig = {
   apiKey: string;
   environmentName: string;
-  model: string | null;
+};
+
+export type CursorModelOption = {
+  id: string;
+  displayName: string;
+  description: string | null;
 };
 
 export type CursorAgentDispatch = {
@@ -62,7 +79,6 @@ export function resolveCursorCloudConfig(): CursorCloudConfig | null {
   return {
     apiKey,
     environmentName,
-    model: readTrimmedEnv("RESEARCH_CURSOR_MODEL"),
   };
 }
 
@@ -138,23 +154,61 @@ async function callCursor(
   return { status: response.status, raw: await response.text() };
 }
 
+export async function listCursorModels(
+  config: CursorCloudConfig,
+): Promise<CursorModelOption[]> {
+  const { status, raw } = await callCursor(CURSOR_MODELS_URL, {
+    method: "GET",
+    apiKey: config.apiKey,
+    timeoutMs: LIST_MODELS_TIMEOUT_MS,
+  });
+  if (status >= 500 || status === 429) {
+    throw new CursorCloudTransientError(
+      `Cursor Cloud odpowiedział ${status} przy liście modeli: ${raw.slice(0, 300)}`,
+    );
+  }
+  if (status < 200 || status >= 300) {
+    throw new CursorCloudPermanentError(
+      `Cursor Cloud odrzucił listę modeli (HTTP ${status}): ${raw.slice(0, 300)}`,
+    );
+  }
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(raw);
+  } catch {
+    throw new CursorCloudPermanentError(
+      "[internal] Cursor Cloud returned a non-JSON models response",
+    );
+  }
+  const parsed = cursorModelsResponseSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new CursorCloudPermanentError(
+      "[internal] Unexpected Cursor Cloud models response shape",
+    );
+  }
+  return parsed.data.items.map((item) => ({
+    id: item.id,
+    displayName: item.displayName,
+    description: item.description?.trim() ? item.description : null,
+  }));
+}
+
 export async function createCursorResearchAgent(params: {
   config: CursorCloudConfig;
   agentId: string;
   runId: string;
   company: ResearchRequest;
+  model?: string | null;
 }): Promise<CursorAgentDispatch> {
-  const { config, agentId, runId, company } = params;
+  const { config, agentId, runId, company, model } = params;
   const body: Record<string, unknown> = {
     agentId,
     name: `research-${company.companyName}`.slice(0, 100),
     prompt: { text: buildResearchPrompt({ runId, company }) },
-    // A named cloud environment is what injects MERCATO_BASE_URL and MERCATO_API_KEY into the
-    // agent shell. Without it the provider starts a no-repo agent with no secrets at all.
     env: { type: "cloud", name: config.environmentName },
     autoCreatePR: false,
   };
-  if (config.model) body.model = { id: config.model };
+  if (model) body.model = { id: model };
 
   const { status, raw } = await callCursor(CURSOR_AGENTS_URL, {
     method: "POST",

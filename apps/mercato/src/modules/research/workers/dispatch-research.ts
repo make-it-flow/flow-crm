@@ -104,6 +104,7 @@ export default async function handle(
         agentId,
         runId: run.id,
         company: buildResearchRequest(run),
+        model: run.cursorModel ?? null,
       })
       if (dispatch.providerRunId) {
         run.providerRunId = dispatch.providerRunId
@@ -114,6 +115,7 @@ export default async function handle(
         agentId: dispatch.agentId,
         providerRunId: dispatch.providerRunId,
         environment: config.environmentName,
+        model: run.cursorModel ?? null,
         alreadyExisted: dispatch.alreadyExisted,
       })
       return

@@ -114,6 +114,9 @@ export async function POST(req: Request) {
     const { tenantId, organizationId } = scope
     const body = await req.json().catch(() => ({}))
     const input = researchRunCreateSchema.parse(body)
+    if (!isMockResearchMode() && !input.model) {
+      return NextResponse.json({ error: 'Model required' }, { status: 400 })
+    }
     const container = await createRequestContainer()
     const em = container.resolve('em') as EntityManager
 
@@ -161,6 +164,7 @@ export async function POST(req: Request) {
         companyName: company.displayName,
         websiteUrl: profile?.websiteUrl ?? null,
         industry,
+        cursorModel: input.model ?? null,
         status: 'pending',
         createdAt: now,
         updatedAt: now,
@@ -224,6 +228,9 @@ export async function POST(req: Request) {
       availability: resolveResearchAvailability({ liveRun: run }),
     }, { status: 202 })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid research request', details: error.issues }, { status: 400 })
+    }
     logger.error('Failed to start research run', { err: error })
     return NextResponse.json({ error: 'Failed to start research run' }, { status: 500 })
   }

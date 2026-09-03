@@ -37,6 +37,7 @@ import { isOpenDealStatus } from '@open-mercato/core/modules/customers/lib/dealS
 import { ICON_SUGGESTIONS, renderDictionaryColor, renderDictionaryIcon } from '@open-mercato/core/modules/dictionaries/components/dictionaryAppearance'
 import { readMarkdownPreferenceCookie, writeMarkdownPreferenceCookie } from '@open-mercato/core/modules/customers/lib/markdownPreference'
 import { ClassificationSection } from './ClassificationSection'
+import { StartResearchDialog } from './StartResearchDialog'
 import { ContactCards } from './ContactCards'
 import { FirmographyGrid, type FirmographyValues } from './FirmographyGrid'
 import { ResearchLeftColumn, ResearchRightColumn } from './ResearchColumns'
@@ -134,6 +135,7 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
   const [isDirty, setIsDirty] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isRunning, setIsRunning] = React.useState(false)
+  const [isRunDialogOpen, setIsRunDialogOpen] = React.useState(false)
   const [people, setPeople] = React.useState<CompanyPersonSummary[]>([])
   const [firmography, setFirmography] = React.useState<FirmographyValues>({
     industry: '',
@@ -449,8 +451,8 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
     }
   }, [brief, classification, data, description, firmography, loadData, relatedCompanies, run, saveAddress, sizeBucket, t, websiteUrl])
 
-  const handleRunResearch = React.useCallback(async () => {
-    if (!companyId) return
+  const handleRunResearch = React.useCallback(async (model: string | null) => {
+    if (!companyId) return false
     setIsRunning(true)
     try {
       const result = await runMutation({
@@ -460,10 +462,10 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
         }>('/api/research/runs', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ companyId }),
+          body: JSON.stringify({ companyId, ...(model ? { model } : {}) }),
         }),
         context: { id: companyId, operation: 'runResearch' },
-        mutationPayload: { companyId },
+        mutationPayload: { companyId, model },
       })
       const payload = result.result
       if (result.status === 409) {
@@ -480,7 +482,7 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
           'error',
         )
         await loadRun(companyId)
-        return
+        return false
       }
       if (!result.ok) {
         throw new Error(t('research.profile.runError'))
@@ -498,8 +500,10 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
         isDirtyRef.current = false
         setIsDirty(false)
       }
+      return true
     } catch (err) {
       flash(err instanceof Error ? err.message : t('research.profile.runError'), 'error')
+      return false
     } finally {
       setIsRunning(false)
     }
@@ -577,7 +581,7 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
             <Button
               type="button"
               size="sm"
-              onClick={() => { void handleRunResearch() }}
+              onClick={() => { setIsRunDialogOpen(true) }}
               disabled={isRunning || runLive || !researchAvailability.canStart}
             >
               {researchAvailability.reason === 'running'
@@ -691,6 +695,15 @@ export function FlowCompanyProfile({ companyId }: { companyId?: string }) {
           </div>
         </div>
         {ConfirmDialogElement}
+        <StartResearchDialog
+          open={isRunDialogOpen}
+          onOpenChange={setIsRunDialogOpen}
+          isSubmitting={isRunning}
+          onConfirm={async (model) => {
+            const started = await handleRunResearch(model)
+            if (started) setIsRunDialogOpen(false)
+          }}
+        />
       </PageBody>
     </Page>
   )

@@ -6,6 +6,7 @@ import {
   getCursorAgentLiveness,
   newCursorAgentId,
   RESEARCH_PROMPT_NOTION_URL,
+  listCursorModels,
   resolveCursorCloudConfig,
   type CursorCloudConfig,
 } from '../lib/cursorCloud'
@@ -13,7 +14,6 @@ import {
 const config: CursorCloudConfig = {
   apiKey: 'crsr_secret_key',
   environmentName: 'flow-research',
-  model: null,
 }
 
 const company = { companyName: 'Acme', industry: 'IT', websiteUrl: 'https://acme.example' }
@@ -53,7 +53,6 @@ describe('resolveCursorCloudConfig', () => {
     expect(resolveCursorCloudConfig()).toEqual({
       apiKey: 'crsr_x',
       environmentName: 'flow-research',
-      model: null,
     })
   })
 
@@ -78,7 +77,20 @@ describe('createCursorResearchAgent', () => {
     expect(body.env).toEqual({ type: 'cloud', name: 'flow-research' })
     expect(body.autoCreatePR).toBe(false)
     expect(body).not.toHaveProperty('target')
+    expect(body).not.toHaveProperty('model')
     expect(result).toEqual({ agentId: 'bc-1', providerRunId: 'run-9', alreadyExisted: false })
+  })
+
+  it('sends the run-selected model when provided', async () => {
+    const spy = mockFetch(async () => jsonResponse(200, { id: 'bc-1' }))
+    await createCursorResearchAgent({
+      config,
+      agentId: 'bc-1',
+      runId: 'r1',
+      company,
+      model: 'claude-4-sonnet-thinking',
+    })
+    expect(lastRequestBody(spy).model).toEqual({ id: 'claude-4-sonnet-thinking' })
   })
 
   it('hands the agent the Notion instruction and CRM fields, without secrets', async () => {
@@ -167,6 +179,30 @@ describe('getCursorAgentLiveness', () => {
 
     mockFetch(async () => jsonResponse(200, { id: 'bc-1' }))
     await expect(getCursorAgentLiveness({ config, agentId: 'bc-1' })).resolves.toBe('unknown')
+  })
+})
+
+describe('listCursorModels', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('returns the recommended models from Cursor', async () => {
+    mockFetch(async () => jsonResponse(200, {
+      items: [
+        { id: 'composer-2', displayName: 'Composer 2', description: 'Default' },
+        { id: 'claude-4-sonnet-thinking', displayName: 'Claude 4 Sonnet Thinking' },
+      ],
+    }))
+    await expect(listCursorModels(config)).resolves.toEqual([
+      { id: 'composer-2', displayName: 'Composer 2', description: 'Default' },
+      { id: 'claude-4-sonnet-thinking', displayName: 'Claude 4 Sonnet Thinking', description: null },
+    ])
+  })
+
+  it('classifies a rejected models request as permanent', async () => {
+    mockFetch(async () => jsonResponse(401, { error: 'unauthorized' }))
+    await expect(listCursorModels(config)).rejects.toBeInstanceOf(CursorCloudPermanentError)
   })
 })
 

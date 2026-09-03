@@ -102,6 +102,9 @@ export class ResearchRun {
   errorMessage?: string | null
 
   // Written before the provider is called, so a lost response never leaves an untracked agent.
+  @Property({ name: 'cursor_model', type: 'text', nullable: true })
+  cursorModel?: string | null
+
   @Property({ name: 'provider_agent_id', type: 'text', nullable: true })
   providerAgentId?: string | null
 

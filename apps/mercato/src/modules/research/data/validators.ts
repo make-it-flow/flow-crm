@@ -32,8 +32,11 @@ export const researchPersonSchema = z.object({
   note: optionalText,
 })
 
+export const researchCursorModelSchema = z.string().trim().min(1).max(120)
+
 export const researchRunCreateSchema = z.object({
   companyId: z.string().uuid(),
+  model: researchCursorModelSchema.optional(),
 })
 
 export const researchRunListQuerySchema = z.object({
